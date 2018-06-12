@@ -7,13 +7,10 @@
 
 #define MAX_LINE 80 // max length
 
-char * readline();
 void loop();
-char * readLine();
-char * tokenize(char *line);
-int executeVP(char *args);
-
-int a = 0;
+char* getLine();
+char** tokenize(char *line);
+void executeVP(char **args);
 
 /*
 	After reading input, the steps are:
@@ -30,7 +27,8 @@ int main(void)
 
 void loop()
 {
-	char *args[MAX_LINE/2+1]; // CLI arguments
+	char **args; // CLI arguments
+	args = malloc(41 * sizeof(char *));
 	char *line;
 	line = (char *)malloc(sizeof(MAX_LINE));
 	char *token;
@@ -40,84 +38,58 @@ void loop()
 	
 	while (sRun) {
 		printf("CSCI3120> ");
-		fflush(stdout);
 
-		scanf("%s", line);
-		args[index] = line;
-		index++;
+		line = getLine(line);
+		printf("Line: %s", line);
 
-		pid_t pid = fork();
-		sRun = pid;
-		if (pid < 0) {
-			fprintf(stderr, "Fork Failed");
-		} else if (pid == 0) {
-			execvp(args[0], args);
+		if (strcmp(line, "exit") == 0) {
+			sRun = 0;
+			exit(0);
 		} else {
-			wait(NULL);
-			printf("\nChild complete\n\n");
+			args = tokenize(line);
+			executeVP(args);
+			free(args);
+			free(line);
 		}	
+			
+		fflush(stdout);
 	}
-
-	// char *line;
-	// char *token;
-
-	// int sRun = 1; // flag to determine 
-	// int index = 0;
-
-	// while (sRun) {
-	// 	printf("CSCI3120>");
-	// 	fflush(stdout);	
-
-	// 	line = readLine();
-	// 	token = strtok(line, " ");
-	// 	while (token != NULL) {
-	// 		args[index] = token;
-	// 		index++;
-	// 	}
-	// 	args[index] = NULL;
-
-	
-	// 	 sRun = 0;
-
-		
-	// }
 }
 
-// char** tokenize(char *line) 
-// {
-// 	char **args; 
-// 	int index = 0;
-// 	char *token = strtok(line, " ");
+char* getLine(void) {
+	char *line = NULL;
+	ssize_t buff = 0;
+	getline(&line, &buff, stdin);
+	return line;
+}
 
-// 	while (token != NULL) {
-// 		args[index] = token;
-// 		index++;
-// 		token = strtok(NULL, " ");
-// 	}
+char** tokenize(char *line) {
+	int index = 0;
+	char** tokens = malloc(41 * sizeof(char *));
+	char* tok;
 
-// 	return args;
-// }
-// char * readLine() 
-// {
-// 	char *line = NULL;
-// 	size_t size = 0;
-// 	if (getline(&line, &size, stdin) > -1) {
-// 		return line;
-// 	}
-// }
-// Retrieved from "System Calls and Processes/CSCI 3120: Operating System"
-// int executeVP(char *args)
-// { 
-// 	pid_t pid = fork();
+	tok = strtok(line, " ");
+	while (tok != NULL) {
+		tokens[index] = tok;
+		printf("%s", tokens[index]);
+		index++;
+		tok = strtok(NULL, " ");
+	}
+	tokens[index+1] = NULL;
+	return tokens;
+}
 
-// 	if (pid < 0) {
-// 		fprintf(stderr, "Fork Failed");
-// 		return 1;
-// 	} else if (pid ==0) {
-// 		execvp(args[0], args);
-// 	} else {
-// 		wait(NULL);
-// 		printf("Child Complete");
-// 	}
-// 	return 0;
-// }
+void executeVP(char **args) {
+	pid_t pid = fork();
+
+	if (pid < 0) {
+		fprintf(stderr, "Fork Failed");
+		exit(1);
+	} else if (pid == 0) {
+		execvp(args[0], args);
+	} else {
+		wait(NULL);
+		printf("\nChild complete\n\n");
+	}
+}
+
